@@ -6,15 +6,10 @@ class Card:
     def __init__(self, rank, suit) -> None:
         self.rank = rank
         self.suit = suit
-        self.value = rank
-        if self.rank in ["J", "Q", "K"]:
-            self.value = 10
-        elif self.rank == "A":
-            self.value = 11
         pass
 
     def __repr__(self) -> str:
-        ranks = {"A": "Ace", "J": "Jack", "Q": "Queen", "K": "King"}
+        ranks = {1: "Ace", 11: "Jack", 12: "Queen", 13: "King"}
         suits = {"D": "♦️", "C": "♣️", "H": "♥️", "S": "♠️"}
         return f"{suits[self.suit]} {ranks.get(self.rank, self.rank)}"
 
@@ -24,14 +19,6 @@ class Deck:
         self.cards = []
         for suit in ["D", "C", "H", "S"]:  # Diamonds, Clubs, Hearts, Spades
             for rank in range(1, 14):
-                if rank == 1:
-                    rank = "A"
-                elif rank == 11:
-                    rank = "J"
-                elif rank == 12:
-                    rank = "Q"
-                elif rank == 13:
-                    rank = "K"
                 self.cards.append(Card(rank, suit))
         pass
 
@@ -44,27 +31,44 @@ class Deck:
 
 class Hand:
     def __init__(self) -> None:
-        self.cards = []
-        self.value = 0
-        self.ace = False
-        self.soft = False
+        self._cards = []
+        self._value = 0
+        self._ace = False
+        self._soft = False
         pass
 
     def __repr__(self) -> str:
-        return f"Total hand value: {self.value} {'(Soft hand) ' if self.soft else ''}"
+        return f"Total hand value: {self._value} {'(Soft hand) ' if self._soft else ''}"
 
     def add_card(self, card):
-        self.cards.append(card)
-        self.value += card.value
-        if card.rank == "A":
-            self.ace = True
+        self._cards.append(card)
+        if 11 <= card.rank <= 13:
+            self._value += 10
+        elif card.rank == 1:
+            self._ace = True
+            self._value += 11
+        else:
+            self._value += card.rank
+        if self._value > 21:
+            if self._ace and not self._soft:
+                self._value -= 10
+                self._soft = True
 
-    def update_soft(self):
-        if self.ace and not self.soft:
-            self.value -= 10
-            self.soft = True
-            return True
-        return False
+    @property
+    def cards(self):
+        return self._cards
+
+    @property
+    def value(self):
+        return self._value
+
+    @property
+    def ace(self):
+        return self._ace
+
+    @property
+    def soft(self):
+        return self._soft
 
 
 class Player:
@@ -80,6 +84,9 @@ class Player:
 
 class Blackjack:
     def __init__(self) -> None:
+        self.deck = None
+        self.dealer = None
+        self.player = None
         pass
 
     def start(self):
@@ -94,10 +101,7 @@ class Blackjack:
 
     def player_turn(self):
         if self.player.hand.value > 21:
-            if self.player.hand.update_soft():
-                self.player_turn()
-            else:
-                self.end_game()
+            self.end_game()
         elif self.player.hand.value == 21:
             self.end_game()
         elif self.player.stand:
@@ -122,10 +126,7 @@ class Blackjack:
 
     def dealer_turn(self):
         if self.dealer.hand.value > 21:
-            if self.dealer.hand.update_soft():
-                self.dealer_turn()
-            else:
-                self.end_game()
+            self.end_game()
         elif self.dealer.hand.value == 21:
             self.end_game()
         elif self.dealer.hand.value < 17:
